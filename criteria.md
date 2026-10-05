@@ -24,7 +24,7 @@ data earns credit; *"80% seemed reasonable"* does not.
 Given a query that matches at least one listing, the agent completes all three
 tool calls and returns a fit card — in at least 4 of 5 tries.
 
-**Why this target:**
+**Why this target: search_listings uses keyword overlap rather than semantic search. Therefore, different wording can cause an existing matching listing to be missed.**
 <!-- Why 4 of 5 and not 5 of 5? Something about your search, probably —
      "my search is a plain keyword match and some phrasings will miss" is a
      real answer. -->
@@ -36,7 +36,7 @@ tool calls and returns a fit card — in at least 4 of 5 tries.
 Given a query that matches no listings, the agent stops before calling
 `suggest_outfit` and returns a message naming what to change — 5 of 5 tries.
 
-**Why this target:**
+**Why this target:The empty-result path is controlled by a deterministic branch in the planning loop rather than model-generated output, so it should stop consistently every time.**
 <!-- Why is 5 of 5 reasonable here when criterion 1 isn't? What's different
      about this path? -->
 
@@ -53,10 +53,9 @@ Given a query that matches no listings, the agent stops before calling
      look like state failure — it looks like a tool problem. Something that
      compares session["selected_item"] against what actually reached
      suggest_outfit is the shape you're after. -->
+For a matching query, the ID of `session["selected_item"]` passed to suggest_outfit should be the same in 5 out of 5 runs.
 
-
-
-**Why this target:**
+**Why this target: Since the selected item is passed through session state rather than generated again by the model, its ID should remain unchanged every time.**
 
 
 
@@ -74,11 +73,10 @@ Given a query that matches no listings, the agent stops before calling
      mentions the price? Two different items producing the same opening
      sentence? A card longer than a caption anyone would post? Any of those can
      be turned into a number. -->
+Given a matching query, the fit card should have the price of a product in 5 out of 5 tries.
 
 
-
-**Why this target:**
-
+**Why this target: Since the price of each product is stored in the selected item's dictionary, the fit card should include the correct price every time.**
 
 
 ---
@@ -92,9 +90,9 @@ Given a query that matches no listings, the agent stops before calling
      search respects a price ceiling — anything, as long as it names a number
      or an observable outcome. -->
 
+Given a query with a maximum price, matching queries should not include the price that over max price in 5 out of 5 tries.
 
-
-**Why this target:**
+**Why this target: Since the price of each product is stored in the item’s dictionary, filtering by price can be performed reliably.**
 
 
 
