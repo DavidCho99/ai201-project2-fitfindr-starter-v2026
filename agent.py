@@ -51,64 +51,106 @@ def new_session(query: str, wardrobe: dict) -> dict:
 
 def run_agent(query: str, wardrobe: dict) -> dict:
     """
-    Run the loop once and return the finished session.
-
-    Args:
-        query:    what the user asked for, in plain language
-                  (e.g. "vintage graphic tee under $30, size M").
-        wardrobe: a wardrobe dict — get_example_wardrobe() or
-                  get_empty_wardrobe() from utils/data_loader.py.
-
-    Returns:
-        The session dict. **Check session["error"] first** — if it isn't None,
-        the run ended early and the later fields will still be None.
-
-    ─────────────────────────────────────────────────────────────────────────
-    TODO — build this, following the branch rule you wrote in Milestone 2.
-
-      1. Start a session with new_session().
-
-      2. Count the times round the loop, and call trace.check_iterations(count)
-         on each one before you go again. It raises when the count passes
-         MAX_ITERATIONS in config.py — see trace.py.
-
-      3. Parse the query into a description, a size, and a max_price. Regex,
-         string splitting, or asking the model are all fine — say which you
-         chose in your README. Put the result in session["parsed"].
-
-      4. Call search_listings() with what you parsed.
-         Put the results in session["search_results"].
-
-         ⚠️ THIS IS THE BRANCH. If nothing came back:
-              - put a message in session["error"] saying what the user could
-                change — "No results" is not that message
-              - return the session
-              - do NOT call suggest_outfit with nothing
-
-      5. Choose an item — the first result is fine. Put it in
-         session["selected_item"].
-
-      6. Call suggest_outfit() with the selected item and the wardrobe.
-         Put the result in session["outfit_suggestion"].
-
-      7. Call create_fit_card() with the outfit and the item.
-         Put the result in session["fit_card"].
-
-      8. Return the session.
-
-    ─────────────────────────────────────────────────────────────────────────
-    IN UNIT 4 you come back and add two things:
-
-      • Trace calls. One per step. `trace.step("search_listings", inputs=...,
-        returned=...)` — see trace.py. Your README needs the output.
-
-      • A handler for ModelUnavailable, so a bad key produces a message rather
-        than a stack trace. The import is already at the top of this file.
+    Run the FitFindr planning loop once and return the finished session.
     """
+    import re
+
     session = new_session(query, wardrobe)
 
-    # TODO: delete these two lines and build the loop.
-    session["error"] = "The planning loop isn't built yet — see the TODO in agent.py."
+    # ── 1. Parse the query ────────────────────────────────────────────────
+
+    size = None
+    max_price = None
+    description = query
+
+    # Find price patterns such as:
+    # "under $30", "under 30", "below $25"
+    price_match = re.search(
+        r"\b(?:under|below|max(?:imum)?(?:\s+price)?(?:\s+of)?)\s*\$?(\d+(?:\.\d{1,2})?)",
+        query,
+        re.IGNORECASE,
+    )
+
+    if price_match:
+        max_price = float(price_match.group(1))
+
+        # Remove the price phrase from the description.
+        description = (
+            description[:price_match.start()]
+            + " "
+            + description[price_match.end():]
+        )
+
+    # Find explicit sizes such as:
+    # "size M", "size S/M", "size W29"
+    size_match = re.search(
+        r"\bsize\s+([A-Za-z0-9/]+)",
+        description,
+        re.IGNORECASE,
+    )
+
+    if size_match:
+        size = size_match.group(1)
+
+        # Remove the size phrase from the description.
+        description = (
+            description[:size_match.start()]
+            + " "
+            + description[size_match.end():]
+        )
+
+    # Remove filler language that doesn't describe the item.
+    description = re.sub(
+        r"\b(?:looking\s+for|find\s+me|i\s+want|i'm\s+looking\s+for)\b",
+        " ",
+        description,
+        flags=re.IGNORECASE,
+    )
+
+    description = description.replace(",", " ")
+    description = " ".join(description.split())
+
+    session["parsed"] = {
+        "description": description,
+        "size": size,
+        "max_price": max_price,
+    }
+
+    # ── 2. Search ─────────────────────────────────────────────────────────
+
+    session["search_results"] = search_listings(
+        description=session["parsed"]["description"],
+        size=session["parsed"]["size"],
+        max_price=session["parsed"]["max_price"],
+    )
+
+    # ── 3. BRANCH ─────────────────────────────────────────────────────────
+
+    if not session["search_results"]:
+        session["error"] = (
+            "I couldn't find a matching item. "
+            "Try changing the description, size, or maximum price."
+        )
+        return session
+
+    # ── 4. Select item ────────────────────────────────────────────────────
+
+    session["selected_item"] = session["search_results"][0]
+
+    # ── 5. Suggest outfit ─────────────────────────────────────────────────
+
+    session["outfit_suggestion"] = suggest_outfit(
+        session["selected_item"],
+        session["wardrobe"],
+    )
+
+    # ── 6. Create fit card ────────────────────────────────────────────────
+
+    session["fit_card"] = create_fit_card(
+        session["outfit_suggestion"],
+        session["selected_item"],
+    )
+
     return session
 
 
@@ -117,11 +159,13 @@ def run_agent(query: str, wardrobe: dict) -> dict:
 def _show(session: dict) -> None:
     if session["error"]:
         print(f"  stopped: {session['error']}")
-        print(f"  fit_card is {session['fit_card']!r} — it should still be None here")
+        print(
+            f"  fit_card is {session['fit_card']!r} — it should still be None here")
         return
 
     item = session["selected_item"] or {}
-    print(f"  found:    {item.get('title')} — ${item.get('price')} on {item.get('platform')}")
+    print(
+        f"  found:    {item.get('title')} — ${item.get('price')} on {item.get('platform')}")
     print(f"  outfit:   {session['outfit_suggestion']}")
     print(f"  fit card: {session['fit_card']}")
 
