@@ -113,25 +113,38 @@
 **One full query**
 
 ```
-$ python app.py ask '...'
-
+$ python app.py ask 'vintage graphic tee under $30'
+The planning loop isn't built yet — see the TODO in agent.py.
 ```
 
 **The three tools, tested one at a time**
 
 ```
 $ python -c "from tools import search_listings; print(search_listings('graphic tee', max_price=30))"
-
+[{'id': 'lst_002', 'title': 'Y2K Baby Tee — Butterfly Print', 'description': 'Super cute early 2000s baby tee with butterfly graphic. Fitted crop length. Tag says medium but fits like a small.', 'category': 'tops', 'style_tags': ['y2k', 'vintage', 'graphic tee', 'cottagecore'], 'size': 'S/M', 'condition': 'excellent', 'price': 18.0, 'colors': ['white', 'pink', 'purple'], 'brand': None, 'platform': 'depop'}, {'id': 'lst_006', 'title': 'Graphic Tee — 2003 Tour Bootleg Style', 'description': 'Vintage-style bootleg tee with faded graphic. Slightly boxy fit. 100% cotton, soft and worn-in.', 'category': 'tops', 'style_tags': ['graphic tee', 'vintage', 'grunge', 'streetwear', 'band tee'], 'size': 'L', 'condition': 'good', 'price': 24.0, 'colors': ['black'], 'brand': None, 'platform': 'depop'}, {'id': 'lst_017', 'title': 'Mesh Long-Sleeve Top — Black', 'description': 'Sheer black mesh long-sleeve. Great for layering under a graphic tee or over a bralette. Stretchy material, fits true to size.', 'category': 'tops', 'style_tags': ['y2k', 'grunge', 'goth', 'layering'], 'size': 'S/M', 'condition': 'excellent', 'price': 15.0, 'colors': ['black'], 'brand': None, 'platform': 'depop'}, {'id': 'lst_033', 'title': 'Vintage Band Tee — Faded Grey', 'description': 'Faded grey band-style tee with distressed graphic. Crew neck. Fits boxy. Well-loved but no holes or major damage.', 'category': 'tops', 'style_tags': ['vintage', 'grunge', 'band tee', 'graphic tee', 'streetwear'], 'size': 'L', 'condition': 'fair', 'price': 19.0, 'colors': ['grey', 'charcoal'], 'brand': None, 'platform': 'depop'}, {'id': 'lst_011', 'title': 'Low-Rise Cargo Pants — Khaki', 'description': 'Y2K era low-rise cargo pants. Lots of pockets. Khaki color, slightly distressed at the hems. Great for layering with a long tee.', 'category': 'bottoms', 'style_tags': ['y2k', 'cargo', '2000s', 'streetwear'], 'size': 'W29', 'condition': 'fair', 'price': 27.0, 'colors': ['khaki', 'tan'], 'brand': None, 'platform': 'poshmark'}, {'id': 'lst_015', 'title': 'Vintage Graphic Hoodie — Faded Black', 'description': 'Faded black pullover hoodie with barely-visible vintage graphic on the chest. Cozy interior. Some pilling but adds to the worn-in look.', 'category': 'tops', 'style_tags': ['vintage', 'grunge', 'graphic', 'streetwear'], 'size': 'L', 'condition': 'fair', 'price': 26.0, 'colors': ['black', 'charcoal'], 'brand': None, 'platform': 'depop'}]
 ```
 
 ```
-$ python -c "from tools import suggest_outfit; ..."
+$ python -c "from tools import suggest_outfit; from utils.data_loader import get_example_wardrobe, load_listings; print(suggest_outfit(load_listings()[0], get_example_wardrobe()))""
 
+Here are two versatile outfit ideas using your new vintage Levi's 501s and pieces you already own:
+
+**Outfit 1: Effortless Everyday Streetwear**
+*   **Top:** White ribbed tank top (`w_003`) — *Tuck it in to highlight the waist of the 501s.*
+*   **Outerwear:** Vintage black denim jacket (`w_006`) — *Creates a classic denim-on-denim look with contrasting washes.*
+*   **Shoes:** Chunky white sneakers (`w_007`)
+*   **Accessories:** Brown leather belt (`w_009`) + Black crossbody bag (`w_010`)
+
+**Outfit 2: Cozy & Casual**
+*   **Top:** Oversized grey crewneck sweatshirt (`w_004`) — *Let it drape loosely over the straight-leg fit of the jeans.*
+*   **Shoes:** Black combat boots (`w_008`) — *Cuff the hems of the 501s slightly to let the boots stand out.*
+*   **Accessories:** Black crossbody bag (`w_010`)
 ```
 
 ```
-$ python -c "from tools import create_fit_card; ..."
+python -c "from tools import create_fit_card; from utils.data_loader import load_listings; print(create_fit_card('jeans and white sneakers', load_listings()[0]))"
 
+You can never go wrong with a classic pair of vintage Levi's 501 jeans in the absolute best medium wash. Throw them on with some fresh white sneakers for that effortlessly cool, laid-back streetwear vibe. Grab this timeless staple right now on depop for just $38.00 before someone else snatches them up!
 ```
 
 ---
@@ -147,16 +160,25 @@ $ python -c "from tools import create_fit_card; ..."
 
 **Moment 1**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for: I asked ChatGPT to help me implement the three tools in tools.py based on the provided specifications: search_listings, suggest_outfit, and create_fit_card.*
+- *What came back: ChatGPT suggested an implementation for search_listings that filters listings by size and maximum price, then ranks the remaining listings using keyword overlap. It also helped implement the two model-based tools for generating outfit suggestions and fit cards.*
+- *What I changed: I tested each tool separately instead of assuming the generated code worked. During testing, I found that the model-based tools failed because google.genai was not available in my Python environment. I set up the project environment and dependencies before continuing. I also checked the search results manually to understand how keyword matching could return loosely related items.*
 
 **Moment 2**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for: I gave ChatGPT the starter code and instructions for agent.py and asked how to implement Milestone 5’s planning loop and session state.*
+- *What came back: ChatGPT suggested storing each tool’s result in the session and reading it back before calling the next tool. It also suggested a branch that stops the agent when search_listings returns an empty list.*
+- *What I changed: I tested both paths with python agent.py. The matching query successfully went through search, outfit generation, and fit-card generation. The impossible query stopped after the search and left session["fit_card"] as None. I used these test results to verify that the branch and session-state behavior matched the project requirements.*
 
+
+## Planning Loop
+
+**Location:** `agent.py::run_agent`
+
+**Branch rule:** After calling `search_listings`, if no matching listings are
+returned, the agent stops and tells the user to change the description, size,
+or maximum price. Otherwise, it selects the first result, stores it in the
+session, generates an outfit suggestion, and then creates a fit card.
 <!-- ═══════════════════════ UNIT 4 — THE TEST ═══════════════════════
 
      Don't fill these in during unit 3.
