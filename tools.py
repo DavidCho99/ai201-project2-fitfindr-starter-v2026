@@ -46,19 +46,47 @@ def search_listings(
     max_price: float | None = None,
 ) -> list[dict]:
     """
-    Search listings using price, size, and keyword overlap.
-    Returns the best matches first, or [] when nothing matches.
+    Search clothing listings using keyword relevance,
+    optional size filtering, and maximum price.
+
+    Clothing-type terms must match the listing's title
+    or description. Returns matching listings sorted
+    by relevance, or [] if nothing matches.
     """
 
     listings = load_listings()
     query_words = _words(description)
+
+    # Clothing-type synonyms
+    clothing_types = {
+        "tee": {"tee", "shirt", "tshirt"},
+        "shirt": {"shirt", "tee", "tshirt"},
+        "hoodie": {"hoodie", "sweatshirt"},
+        "jacket": {"jacket", "coat"},
+        "jeans": {"jeans", "denim"},
+        "pants": {"pants", "trousers"},
+        "dress": {"dress", "gown"},
+        "skirt": {"skirt"},
+        "shoes": {"shoes", "sneakers", "boots"},
+        "belt": {"belt"},
+        "hat": {"hat", "cap", "beanie"},
+    }
+
+    requested_types = [
+        clothing_type
+        for clothing_type in clothing_types
+        if clothing_type in query_words
+    ]
 
     scored_results: list[tuple[int, dict]] = []
 
     for listing in listings:
 
         # 1. Price filter
-        if max_price is not None and listing["price"] > max_price:
+        if (
+            max_price is not None
+            and listing["price"] > max_price
+        ):
             continue
 
         # 2. Size filter
@@ -71,7 +99,7 @@ def search_listings(
             if not _size_matches(size, listing_size):
                 continue
 
-        # 3. Build searchable text from useful listing fields
+        # 3. Build searchable text
         searchable_parts = [
             listing.get("title", ""),
             listing.get("description", ""),
@@ -83,22 +111,36 @@ def search_listings(
 
         searchable_words = _words(" ".join(searchable_parts))
 
-        # 4. Keyword-overlap score
+        # 4. Require clothing-type relevance
+        if requested_types:
+            title_words = _words(listing.get("title", ""))
+
+            type_matches = any(
+                bool(title_words & clothing_types[requested_type])
+                for requested_type in requested_types
+            )
+
+            if not type_matches:
+                continue
+
+        # 5. Calculate keyword-overlap score
         score = len(query_words & searchable_words)
 
-        # Drop zero-score results
         if score == 0:
             continue
 
         scored_results.append((score, listing))
 
-    # 5. Best keyword matches first
-    scored_results.sort(key=lambda result: result[0], reverse=True)
+    # 6. Sort by relevance
+    scored_results.sort(
+        key=lambda result: result[0],
+        reverse=True,
+    )
 
-    # 6. Respect configured result limit
+    # 7. Respect result limit
     return [
         listing
-        for _, listing in scored_results[: config.SEARCH_RESULT_LIMIT]
+        for _, listing in scored_results[:config.SEARCH_RESULT_LIMIT]
     ]
 
 

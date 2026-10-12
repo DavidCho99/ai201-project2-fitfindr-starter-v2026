@@ -366,31 +366,191 @@ The main architectural difference is that the search tool is now accessed throug
 
 ## The Improvement
 
-<!-- What you changed, why your diagnosis pointed at it, and the after-run in
-     the same table format. One change, measured properly.
-
-     `python run_eval.py --label after` -->
-
 **What I changed:**
+
+I improved the search relevance logic in `tools.py::search_listings`.
+
+Previously, the search algorithm ranked listings using simple keyword overlap. Any item sharing at least one keyword with the user's query could appear in the results, even if it belonged to an unrelated clothing category.
+
+For example, searching for "vintage graphic tee under $20" returned eight listings, including a leather belt and a bucket hat.
+
+I added a clothing-type matching rule using a dictionary of related clothing terms. The search now checks whether the requested clothing type matches a recognized term in the listing's title before ranking the results.
+
+I kept the existing price filter, size filter, and result limit unchanged.
 
 **Which failure it was meant to fix:**
 
+The improvement targeted a relevance problem in `tools.py::search_listings`.
+
+All five original acceptance criteria met their targets during the baseline evaluation, but the search results revealed a weakness that those criteria did not directly measure.
+
+The original algorithm treated descriptive words such as "vintage" as equally important as clothing-type words such as "tee".
+
+Consequently, unrelated products could appear in the results simply because they shared a descriptive keyword.
+
+The new clothing-type matching rule aims to reduce these irrelevant results without breaking the existing agent workflow.
+
 ### Run Log — After
 
+- Produced by: `run_eval.py::main`
+
+- Loop: `agent.py::run_agent`
+
+- Tools: `tools.py`
+
+- Tries per scenario: 5
+
+- Caching: Off
+
+- Temperature: 0.9
+
+- Date: October 11, 2026, 21:04
+
 | Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
-| --------- | ------ | ----- | ----- | ----- | ----- | ----- | ------- |
-| 1.        |        |       |       |       |       |       |         |
-| 2.        |        |       |       |       |       |       |         |
-| 3.        |        |       |       |       |       |       |         |
-| 4.        |        |       |       |       |       |       |         |
-| 5.        |        |       |       |       |       |       |         |
+
+|---|---|---|---|---|---|---|---|
+
+| 1. matching query completes | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+
+| 2. impossible query stops early | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+
+| 3. session state consistency | 5 of 5 | TBD | TBD | TBD | TBD | TBD | NOT VERIFIED |
+
+| 4. fit card includes correct price | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+
+| 5. maximum price constraint | 5 of 5 | TBD | TBD | TBD | TBD | TBD | NOT VERIFIED |
+
+| empty wardrobe (diagnostic) | N/A | PASS | PASS | PASS | PASS | PASS | PASS (5/5) |
+
+Criteria 3 and 5 require additional verification after the code change. The evaluation trace confirms the selected item and tool execution, but it does not print the actual item IDs passed between tools or the prices of every returned listing.
+
+### Before vs. After Comparison
+
+| Measurement | Before | After | Result |
+
+|---|---|---|---|
+
+| Graphic tee search under $30 | 10 listings | 5 listings | Fewer loosely related results |
+
+| Graphic tee search under $20 | 8 listings | 3 listings | Fewer loosely related results |
+
+| Leather belt returned | Yes | No | Improved |
+
+| Bucket hat returned | Yes | No | Improved |
+
+| Full three-tool execution | 5/5 | 5/5 | Maintained |
+
+| Empty-search handling | 5/5 | 5/5 | Maintained |
+
+| Correct fit-card price | 5/5 | 5/5 | Maintained |
+
+| Empty-wardrobe handling | 5/5 | 5/5 | Maintained |
+
+### Real Output — Before
+
+Source: `run_eval.py::main` and `agent.py::run_agent`
+
+Query: `vintage graphic tee under $20`
+
+```text
+
+[1] search_listings
+
+      in: dict with keys: description, size, max_price
+
+      out: 8 items: Y2K Baby Tee — Butterfly Print,
+
+           Vintage Band Tee — Faded Grey,
+
+           Mesh Long-Sleeve Top — Black … +5 more
+
+```
+
+The additional baseline verification displayed these eight listings:
+
+```text
+
+Y2K Baby Tee — Butterfly Print: $18.0
+
+Vintage Band Tee — Faded Grey: $19.0
+
+Mesh Long-Sleeve Top — Black: $15.0
+
+Oversized Crewneck Sweatshirt — Vintage Navy: $20.0
+
+Leather Belt — Brown, Braided: $12.0
+
+Henley Long Sleeve — Washed Burgundy: $16.0
+
+Vintage Polo Shirt — Forest Green: $18.0
+
+Bucket Hat — Reversible, Brown Plaid: $14.0
+
+```
+
+### Real Output — After
+
+Source: `run_eval.py::main` and `agent.py::run_agent`
+
+Query: `vintage graphic tee under $20`
+
+```text
+
+[1] search_listings
+
+      in:  dict with keys: description, size, max_price
+
+      out: 3 items: Y2K Baby Tee — Butterfly Print,
+
+           Vintage Band Tee — Faded Grey,
+
+           Vintage Polo Shirt — Forest Green
+
+[2] suggest_outfit
+
+      in:  dict with keys: item, wardrobe
+
+      out: Here are two ways to style your new Y2K butterfly baby tee using pieces already in your wardrobe: ...
+
+[3] create_fit_card
+
+      in:  dict with keys: outfit_suggestion, item
+
+      out: Channel your inner 2000s pop star with this dreamy white, pink, and purple butterfly baby tee...
+
+```
+
+Selected item:
+
+```text
+
+Y2K Baby Tee — Butterfly Print ($18.00, depop)
+
+```
+
+Fit card:
+
+```text
+
+Channel your inner 2000s pop star with this dreamy white, pink, and purple butterfly baby tee, yours for just $18.00 on depop! Serve ultimate off-duty streetwear vibes by pairing it with baggy jeans and a black denim jacket, or lean into edgy casual by styling it with wide-leg trousers and combat boots. Grab this quintessential Y2K staple before it's gone! 🦋✨
+
+```
 
 **Did it help, and how do I know:**
 
-<!-- If it made things worse, say that. Honestly reported, that earns full
-     credit and is more interesting than one that worked. -->
+Yes. The improvement reduced unrelated search results while preserving the observed behavior of the main agent workflow.
 
+For the query "vintage graphic tee under $20", the number of returned listings decreased from eight to three. Unrelated accessories, including the leather belt and bucket hat, were removed.
 
+For the query "vintage graphic tee under $30", the number of results decreased from ten to five.
+
+The selected item remained the Y2K Baby Tee — Butterfly Print, priced at $18.00.
+
+The agent also continued to complete all three tools successfully in five out of five runs. The impossible-query branch continued to stop correctly in five out of five runs, and all five fit cards included the correct selected-item price.
+
+These results demonstrate improved search precision for the tested queries.
+
+However, reducing the number of results does not necessarily improve recall. Additional evaluation with more queries would be needed to determine whether the stricter matching rule excludes relevant products.
 
 ---
 
