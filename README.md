@@ -197,136 +197,21 @@ session, generates an outfit suggestion, and then creates a fit card.
      `python run_eval.py --label before` runs everything and writes the table
      into results/. Paste it here and fill in the verdicts. -->
 
-| Criterion                                          | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict    |
-| -------------------------------------------------- | ------ | ----- | ----- | ----- | ----- | ----- | ---------- |
-| 1. matching query completes                        | 4 of 5 | PASS  | PASS  | PASS  | PASS  | PASS  | MET (5/5)  |
-| 2. impossible query stops early                    | 5 of 5 | PASS  | PASS  | PASS  | PASS  | PASS  | MET (5/5)  |
-| 3. session state consistency                       | 5 of 5 | PASS  | PASS  | PASS  | PASS  | PASS  | MET (5/5)  |
-| 4. fit card includes correct price                 | 5 of 5 | PASS  | PASS  | PASS  | PASS  | PASS  | MET (5/5)  |
-| 5. maximum price constraint                        | 5 of 5 | PASS  | PASS  | PASS  | PASS  | PASS  | MET (5/5)  |
-| empty wardrobe (diagnostic — not one of your five) | N/A    | PASS  | PASS  | PASS  | PASS  | PASS  | PASS (5/5) |
+| Criterion                                          | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict      |
+| -------------------------------------------------- | ------ | ----- | ----- | ----- | ----- | ----- | ------------ |
+| 1. matching query completes                        | 4 of 5 | PASS  | PASS  | PASS  | PASS  | PASS  | MET (5/5)    |
+| 2. impossible query stops early                    | 5 of 5 | PASS  | PASS  | PASS  | PASS  | PASS  | MET (5/5)    |
+| 3. session state consistency                       | 5 of 5 | TBD   | TBD   | TBD   | TBD   | TBD   | NOT VERIFIED |
+| 4. fit card includes correct price                 | 5 of 5 | PASS  | PASS  | PASS  | PASS  | PASS  | MET (5/5)    |
+| 5. maximum price constraint                        | 5 of 5 | PASS  | PASS  | PASS  | PASS  | PASS  | MET (5/5)    |
+| empty wardrobe (diagnostic — not one of your five) | N/A    | PASS  | PASS  | PASS  | PASS  | PASS  | PASS (5/5)   |
 
-**Real output from one try, including the source file and function:**
+**Real output from one try**, pasted as text, naming the file and function
+that produced it:
 
-### Criterion 1 — Matching Query Completes
+```
 
-Source: `agent.py::run_agent`
-
-Query: `vintage graphic tee under $30`
-
-Selected item: Y2K Baby Tee — Butterfly Print ($18.00, depop)
-
-Trace:
-
-    [1] search_listings
-          in: dict with keys: description, size, max_price
-          out: 10 items: Y2K Baby Tee — Butterfly Print,
-               Graphic Tee — 2003 Tour Bootleg Style,
-               Vintage Band Tee — Faded Grey … +7 more
-
-    [2] suggest_outfit
-          in: dict with keys: item, wardrobe
-          out: Here are two ways to style your new Y2K butterfly baby tee...
-
-    [3] create_fit_card
-          in: dict with keys: outfit_suggestion, item
-          out: Channel your inner 2000s pop star...
-
-Fit card:
-
-Channel your inner 2000s pop star with this dreamy Y2K butterfly baby tee, available now on depop for just $18.00! Whether you're pairing it with baggy denim and a cropped zip hoodie for peak streetwear contrast or tucking it into khaki trousers with combat boots for an edgy earth-tone vibe, this top is effortlessly versatile. ✨🦋
-
-### Criterion 2 — Impossible Query Stops Early
-
-Source: `agent.py::run_agent`
-
-Query: `designer ballgown size XXS under $5`
-
-Actual output:
-
-    stopped early: yes
-    selected_item: (none)
-    search_results: 0
-
-    [1] search_listings
-          in: dict with keys: description, size, max_price
-          out: [] (empty)
-
-Error message:
-
-I couldn't find any clothing listings matching your search. Try using a broader description, changing your size, or increasing your maximum budget.
-
-### Criterion 3 — Session State Consistency
-
-Source: `verify_criteria.py::verify_state_consistency`
-
-Additional verification output:
-
-    Try 1: PASS | selected ID: lst_002 | received ID: lst_002
-    Try 2: PASS | selected ID: lst_002 | received ID: lst_002
-    Try 3: PASS | selected ID: lst_002 | received ID: lst_002
-    Try 4: PASS | selected ID: lst_002 | received ID: lst_002
-    Try 5: PASS | selected ID: lst_002 | received ID: lst_002
-
-All five verification runs confirmed that the selected item's ID matched the ID received by suggest_outfit.
-
-### Criterion 4 — Fit Card Includes Correct Price
-
-Source: `tools.py::create_fit_card`
-
-Selected item: Y2K Baby Tee — Butterfly Print
-
-Selected item price: $18.00
-
-Actual fit card:
-
-Channel your inner 2000s pop star with this dreamy white, pink, and purple butterfly baby tee! Grab it now on depop for just $18.00 to complete your ultimate Y2K streetwear vibe. Style it with baggy jeans and chunky sneakers, or throw on a black cropped zip hoodie for chilly days.
-
-All five evaluation runs included the correct price of $18.00.
-
-### Criterion 5 — Maximum Price Constraint
-
-Source: `verify_criteria.py::verify_maximum_price`
-
-Query: `vintage graphic tee under $20`
-
-Actual output from Try 1:
-
-    Try 1: PASS | Max price: $20.0 | Results: 8
-      - Y2K Baby Tee — Butterfly Print: $18.0
-      - Vintage Band Tee — Faded Grey: $19.0
-      - Mesh Long-Sleeve Top — Black: $15.0
-      - Oversized Crewneck Sweatshirt — Vintage Navy: $20.0
-      - Leather Belt — Brown, Braided: $12.0
-      - Henley Long Sleeve — Washed Burgundy: $16.0
-      - Vintage Polo Shirt — Forest Green: $18.0
-      - Bucket Hat — Reversible, Brown Plaid: $14.0
-
-All eight returned listings were priced at or below $20.
-
-The additional verification passed 5 out of 5 runs.
-
-### Empty Wardrobe — Diagnostic
-
-Source: `agent.py::run_agent`
-
-Query: `denim jacket under $50`
-
-Wardrobe: empty
-
-Actual output:
-
-Your wardrobe is currently empty, so I can't create a personalized outfit using clothes you already own. You could style this item with neutral trousers, comfortable sneakers, and a simple jacket. Add items to your wardrobe for personalized suggestions.
-
-All five runs returned non-empty styling advice without crashing.
-
-### Evaluation Note
-
-Criteria 3 and 5 were explicitly verified using a separate
-`verify_criteria.py` test after the original baseline evaluation.
-
-The original `run_eval.py --label before` execution did not print
-the item-ID comparison or every returned listing's price.
+```
 
 ---
 
@@ -367,158 +252,64 @@ the returned items to match the requested clothing category.
 
 ## Loop Trace
 
-### Happy Path
+<!-- One full run, printed step by step, with the MCP call visible in it.
 
-Command:
+     `python app.py ask '...' --trace` once you've added the trace.step()
+     calls in Milestone 2.
 
-```bash
-python app.py ask "vintage graphic tee under $30" --trace
+     Worth pasting BOTH the happy path and the empty-search path. The empty
+     one should be visibly shorter, because it stops. If your two traces are
+     the same length, your branch isn't working — and this is the fastest way
+     anyone will ever find that out. -->
+
+**Happy path**
+
 ```
 
-Actual output:
-
-```text
-[1] search_listings
-      in: dict with keys: description, size, max_price
-      out: 10 items: Y2K Baby Tee — Butterfly Print,
-           Graphic Tee — 2003 Tour Bootleg Style,
-           Vintage Band Tee — Faded Grey … +7 more
-
-[2] suggest_outfit
-      in: dict with keys: item, wardrobe
-      out: Here are two ways to style your new Y2K butterfly baby tee...
-
-[3] create_fit_card
-      in: dict with keys: outfit_suggestion, item
-      out: Channel your inner 2000s pop star...
 ```
 
-The agent completed all three tools and generated a fit card.
+**Empty search**
 
-### Empty Search
-
-Command:
-
-```bash
-python app.py ask "designer ballgown size XXS under $5" --trace
 ```
 
-Actual output:
-
-```text
-[1] search_listings
-      in: dict with keys: description, size, max_price
-      out: [] (empty)
 ```
 
-The planning loop stopped before calling suggest_outfit or create_fit_card.
+**On the MCP move:** <!-- what changed in your code, and whether anything
+behaved differently afterwards. If the rewire didn't work, say exactly where it
+broke — the error text and the last thing that worked. That earns the point in
+full. -->
 
-### MCP Integration
-
-I replaced the direct Python call to search_listings with
-mcp_client.call_tool().
-
-Before:
-
-Agent → search_listings()
-
-After:
-
-Agent → MCP Client → MCP Server → search_listings()
-
-The MCP server exposes search_listings using FastMCP.
-
-The MCP client successfully discovered the tool, including its
-description and typed parameters.
-
-The agent continued to complete end-to-end queries after the
-MCP integration.
-
-The remaining two tools, suggest_outfit and create_fit_card,
-are still called directly.
 
 
 ---
 
 ## The Improvement
 
+<!-- What you changed, why your diagnosis pointed at it, and the after-run in
+     the same table format. One change, measured properly.
+
+     `python run_eval.py --label after` -->
+
 **What I changed:**
-
-I improved the search relevance logic in `tools.py::search_listings`.
-
-Previously, the search algorithm calculated a relevance score based
-on the number of overlapping keywords between the user's query
-and each listing.
-
-This caused unrelated products to appear in the results.
-
-For example, searching for "vintage graphic tee under $20"
-returned eight listings, including a leather belt and a bucket hat.
-
-I added clothing-type matching using a predefined synonym dictionary.
-The search now checks whether the requested clothing type matches
-the listing title before applying keyword-overlap ranking.
-
-I kept the existing price filter, size filter, and result limit unchanged.
 
 **Which failure it was meant to fix:**
 
-The improvement targeted the search tool's relevance problem.
-
-The original search algorithm treated all matching keywords equally,
-without distinguishing clothing categories from descriptive words.
-
-As a result, a product could appear in the results simply because
-its description contained a word such as "vintage".
-
-The new clothing-type check reduces unrelated search results.
-
 ### Run Log — After
 
-| Criterion                          | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict      |
-| ---------------------------------- | ------ | ----- | ----- | ----- | ----- | ----- | ------------ |
-| 1. matching query completes        | 4 of 5 | PASS  | PASS  | PASS  | PASS  | PASS  | MET (5/5)    |
-| 2. impossible query stops early    | 5 of 5 | PASS  | PASS  | PASS  | PASS  | PASS  | MET (5/5)    |
-| 3. session state consistency       | 5 of 5 | TBD   | TBD   | TBD   | TBD   | TBD   | NOT VERIFIED |
-| 4. fit card includes correct price | 5 of 5 | PASS  | PASS  | PASS  | PASS  | PASS  | MET (5/5)    |
-| 5. maximum price constraint        | 5 of 5 | TBD   | TBD   | TBD   | TBD   | TBD   | NOT VERIFIED |
-| empty wardrobe (diagnostic)        | N/A    | PASS  | PASS  | PASS  | PASS  | PASS  | PASS (5/5)   |
+| Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
+| --------- | ------ | ----- | ----- | ----- | ----- | ----- | ------- |
+| 1.        |        |       |       |       |       |       |         |
+| 2.        |        |       |       |       |       |       |         |
+| 3.        |        |       |       |       |       |       |         |
+| 4.        |        |       |       |       |       |       |         |
+| 5.        |        |       |       |       |       |       |         |
 
 **Did it help, and how do I know:**
 
-Yes. The search returned fewer unrelated products after the change.
+<!-- If it made things worse, say that. Honestly reported, that earns full
+     credit and is more interesting than one that worked. -->
 
-For the query "vintage graphic tee under $20":
 
-Before:
-- 8 listings returned.
-- Results included unrelated products such as a leather belt
-  and a bucket hat.
-
-After:
-- 3 listings returned.
-- The leather belt and bucket hat no longer appeared.
-- The selected item remained Y2K Baby Tee — Butterfly Print ($18.00).
-
-For the query "vintage graphic tee under $30":
-
-Before:
-- 10 listings returned.
-
-After:
-- 5 listings returned.
-
-The original matching query still completed all three tools
-in five out of five runs.
-
-The empty-search branch continued to stop correctly in five
-out of five runs.
-
-All five generated fit cards continued to include the correct
-selected-item price of $18.00.
-
-The results indicate improved search relevance without regressions
-in the three criteria that were directly verifiable from the run logs.
 
 ---
 
@@ -563,90 +354,7 @@ in the three criteria that were directly verifiable from the run logs.
      Do not delete and recreate this repository. Your commit history is what
      shows your criteria existed before your results did.
      ═════════════════════════════════════════════════════════════════════ -->
-## What's Still Broken
 
-The original five acceptance criteria passed during the baseline
-evaluation, with Criteria 3 and 5 confirmed through additional
-verification.
-
-The After evaluation also showed successful full executions,
-correct empty-search branching, and accurate fit-card prices.
-
-However, several limitations remain.
-
-### 1. Search Relevance Is Still Rule-Based
-
-The search system now uses clothing-type matching to reduce
-unrelated results.
-
-However, it still relies on predefined synonyms and
-keyword-overlap scoring.
-
-For example, a user might search for "pullover" while a listing
-uses the word "sweatshirt". If the synonym dictionary does not
-recognize that relationship, the search may miss the item.
-
-A future improvement would use semantic search or embeddings
-to recognize similar clothing descriptions.
-
-### 2. Some Search Results Are Still Loosely Related
-
-After the improvement, the query "vintage graphic tee under $20"
-returned three listings:
-
-- Y2K Baby Tee — Butterfly Print
-- Vintage Band Tee — Faded Grey
-- Vintage Polo Shirt — Forest Green
-
-Although the first two are relevant, the vintage polo shirt
-is not necessarily a graphic tee.
-
-This happens because the synonym-based matching treats
-different shirt types as related.
-
-A stricter clothing-category classification system could
-improve the precision of the results.
-
-### 3. Empty Wardrobe Recommendations Are Generic
-
-When the user's wardrobe is empty, the agent provides
-general styling advice.
-
-For example, when recommending a denim jacket, the fallback
-suggested pairing it with another jacket.
-
-This response is not particularly useful because the selected
-item is already a jacket.
-
-A future improvement would generate fallback suggestions
-based on the selected item's clothing category.
-
-### 4. Evaluation Coverage
-
-The original acceptance criteria measure successful execution,
-empty-search behavior, session consistency, correct prices,
-and maximum-price filtering.
-
-They do not directly measure search relevance.
-
-I would add a new criterion requiring at least four out of five
-returned listings to match the user's requested clothing type
-across several different queries.
-
-### Why I Stopped Here
-
-I focused on making one isolated improvement and measuring
-its effect using the same evaluation scenarios.
-
-The change reduced unrelated search results while preserving
-the existing tool execution flow.
-
-Additional improvements would require expanding the synonym
-dictionary, introducing semantic retrieval, and creating new
-evaluation scenarios.
-
-I left those changes for future development to keep this
-experiment focused and measurable.
 ---
 
 📖 **How to run this project: [RUNNING.md](RUNNING.md)**
