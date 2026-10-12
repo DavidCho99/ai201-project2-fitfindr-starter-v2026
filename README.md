@@ -554,7 +554,6 @@ However, reducing the number of results does not necessarily improve recall. Add
 
 ---
 
-## What's Still Broken
 
 <!-- For each criterion still missed: what you'd do, and why you stopped where
      you did. "I ran out of time" is fine if it's true. Pretending nothing is
@@ -595,7 +594,79 @@ However, reducing the number of results does not necessarily improve recall. Add
      Do not delete and recreate this repository. Your commit history is what
      shows your criteria existed before your results did.
      ═════════════════════════════════════════════════════════════════════ -->
+## What's Still Broken
 
+The baseline evaluation met all five original acceptance criteria, including additional verification of session consistency and maximum-price filtering.
+
+The After evaluation confirmed that the agent still completed full queries, handled empty searches, and generated fit cards with accurate prices. Session consistency and complete price filtering still require explicit post-change verification.
+
+Although the search improvement reduced irrelevant results, several limitations remain.
+
+### 1. Search Relevance
+
+The search system still relies on predefined clothing-type synonyms and keyword-overlap scoring.
+
+For example, the query "vintage graphic tee under $20" still returned "Vintage Polo Shirt — Forest Green".
+
+Although a polo shirt is related to a tee, it is not necessarily a graphic T-shirt.
+
+The current synonym mapping is therefore too broad for some clothing categories.
+
+I would improve this by distinguishing exact clothing types from related alternatives or introducing semantic search with embeddings.
+
+### 2. Search Recall
+
+The new clothing-type rule checks product titles for recognized keywords.
+
+This can exclude relevant products whose titles use different terminology.
+
+For example, a relevant pullover might not appear in a hoodie search if its title does not contain one of the recognized synonyms.
+
+I would evaluate recall using a larger set of queries before making the matching rules stricter.
+
+### 3. Empty Wardrobe Recommendations
+
+When the user's wardrobe is empty, the agent provides general styling advice instead of failing.
+
+However, the recommendations are not always appropriate for the selected item.
+
+For example, the query "denim jacket under $50" produced this suggestion:
+
+```text
+
+Your wardrobe is currently empty, so I can't create a personalized outfit using clothes you already own. You could style this item with neutral trousers, comfortable sneakers, and a simple jacket. Add items to your wardrobe for personalized suggestions.
+
+```
+
+The recommendation suggests another jacket even though the selected item is already a denim jacket.
+
+I would improve the empty-wardrobe prompt to avoid recommending another item of the same clothing type unnecessarily.
+
+### 4. Evaluation Coverage
+
+The original five criteria measure successful tool execution, empty-search handling, session consistency, price accuracy, and maximum-price filtering.
+
+They do not directly measure search relevance or recommendation quality.
+
+In a future evaluation, I would add criteria measuring:
+
+- Clothing-type relevance across different search queries.
+
+- Search recall for synonyms and alternative descriptions.
+
+- Whether outfit recommendations contain appropriate clothing combinations.
+
+- Whether generated suggestions reference only items available in the user's wardrobe.
+
+### Why I Stopped Here
+
+I focused on implementing and evaluating one isolated improvement, as required by Milestone 5.
+
+The change reduced unrelated search results without causing failures in the three acceptance criteria directly verifiable from the After logs.
+
+I did not modify the outfit-generation prompts or add another search algorithm because multiple simultaneous changes would make it difficult to determine which modification caused an improvement or regression.
+
+Further improvements would require additional evaluation scenarios and a more comprehensive relevance-testing framework.
 ---
 
 📖 **How to run this project: [RUNNING.md](RUNNING.md)**
