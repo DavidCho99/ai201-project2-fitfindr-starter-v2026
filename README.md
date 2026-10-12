@@ -250,36 +250,117 @@ For a future evaluation, I would add a stricter criterion requiring
 the returned items to match the requested clothing category.
 ---
 
+---
+
 ## Loop Trace
-
-<!-- One full run, printed step by step, with the MCP call visible in it.
-
-     `python app.py ask '...' --trace` once you've added the trace.step()
-     calls in Milestone 2.
-
-     Worth pasting BOTH the happy path and the empty-search path. The empty
-     one should be visibly shorter, because it stops. If your two traces are
-     the same length, your branch isn't working — and this is the fastest way
-     anyone will ever find that out. -->
 
 **Happy path**
 
+Command:
+
+```bash
+python app.py ask "vintage graphic tee under $30" --trace
 ```
 
+Actual output:
+
+```text
+[1] search_listings
+      in:  dict with keys: description, size, max_price
+      out: 5 items: Y2K Baby Tee — Butterfly Print, Graphic Tee — 2003 Tour Bootleg Style, Vintage Band Tee — Faded Grey … +2 more
+
+[2] suggest_outfit
+      in:  dict with keys: item, wardrobe
+      out: Here are two ways to style your new Y2K butterfly baby tee using pieces already in your wardrobe:  **Outfit 1:…
+
+[3] create_fit_card
+      in:  dict with keys: outfit_suggestion, item
+      out: Channel your inner early-2000s pop star with this dreamy pink and purple butterfly baby tee, up now on depop f…
 ```
+
+Selected item: Y2K Baby Tee — Butterfly Print ($18.00, depop)
+
+Fit card:
+
+```text
+Channel your inner early-2000s pop star with this dreamy pink and purple butterfly baby tee, up now on depop for just $18.00! Nail the ultimate Y2K streetwear vibe by pairing it with baggy jeans and a cropped zip hoodie, or mix in some edge by tucking it into khaki trousers with combat boots.
+```
+
+The agent completed all three steps successfully. The search tool returned five matching listings, the agent selected the first item, and the remaining two tools generated an outfit suggestion and fit card.
 
 **Empty search**
 
+Command:
+
+```bash
+python app.py ask "designer ballgown size XXS under $5" --trace
 ```
 
+Actual output:
+
+```text
+[1] search_listings
+      in:  dict with keys: description, size, max_price
+      out: [] (empty)
 ```
 
-**On the MCP move:** <!-- what changed in your code, and whether anything
-behaved differently afterwards. If the rewire didn't work, say exactly where it
-broke — the error text and the last thing that worked. That earns the point in
-full. -->
+Error message:
 
+```text
+I couldn't find any clothing listings matching your search.
+Try using a broader description, changing your size,
+or increasing your maximum budget.
+```
 
+The agent stopped immediately after `search_listings` returned an empty list. Neither `suggest_outfit` nor `create_fit_card` was executed.
+
+**On the MCP move:**
+
+Before the MCP integration, `agent.py::run_agent` called `search_listings` directly from `tools.py`.
+
+After the integration, the agent uses `mcp_client.call_tool()` to communicate with the MCP server.
+
+The execution flow changed from:
+
+```text
+Agent
+  |
+  v
+tools.py::search_listings()
+```
+
+To:
+
+```text
+Agent (agent.py::run_agent)
+  |
+  v
+MCP Client (mcp_client.py)
+  |
+  v
+MCP Server (mcp_server.py)
+  |
+  v
+search_listings (tools.py)
+  |
+  v
+Search Results
+  |
+  v
+Agent
+  |
+  +--> suggest_outfit()
+  |
+  +--> create_fit_card()
+```
+
+The MCP server exposes `search_listings` using FastMCP. The agent sends the parsed description, size, and maximum price through the MCP client and receives a list of matching clothing listings.
+
+The MCP integration was successful. The client discovered the registered tool, and the agent completed the full three-step workflow without requiring changes to the outfit-generation or fit-card-generation tools.
+
+The empty-search branch also continued to work correctly after the MCP integration.
+
+The main architectural difference is that the search tool is now accessed through the MCP protocol instead of a direct Python function call.
 
 ---
 
